@@ -10,10 +10,17 @@ var globalEventSession = {
 };
 
 var EventManager = KindaClass.extend('EventManager', function() {
+
+  /**
+  * Increase globalEventSession count when begin event session
+  */
   this.beginEventSession = function() {
     globalEventSession.count++;
   };
 
+  /**
+  * Function to emit all events session on global and reset the count to 0
+  */
   this.endEventSession = function() {
     if (!globalEventSession.count)
       throw new Error('cannot end a non opened session');
@@ -32,6 +39,17 @@ var EventManager = KindaClass.extend('EventManager', function() {
     globalEventSession.count--;
   };
 
+  /**
+  * check 
+  */
+  this.hasEventSession = function() {
+    return globalEventSession.count > 0;
+  };
+
+  /**
+  * Function to deal with event which pass into function
+  * @param {function} fn - event function need to call
+  */
   this.runEventSession = function(fn) {
     this.beginEventSession();
     try {
@@ -41,6 +59,9 @@ var EventManager = KindaClass.extend('EventManager', function() {
     }
   };
 
+  /**
+  * Function to get the event sesson on self
+  */
   this.getEventSession = function() {
     if (!globalEventSession.count)
       throw new Error('no opened session');
@@ -51,6 +72,11 @@ var EventManager = KindaClass.extend('EventManager', function() {
     return this._eventSession;
   }
 
+  /**
+  * Function to get event listener on self
+  * @param {string} name - the name of event listener
+  * @param {boolean} createIfUndefined - if true, create event listener if it is undefined
+  */
   this.getEventListeners = function(name, createIfUndefined) {
     if (!this.hasOwnProperty('_eventListeners')) {
       if (!createIfUndefined) return;
@@ -63,12 +89,23 @@ var EventManager = KindaClass.extend('EventManager', function() {
     return this._eventListeners[name];
   }
 
+  /**
+  * add event handl function to specify event listener
+  * @param {string} name - the name of event listener
+  * @param {function} fn - the event handle function
+  */
   this.on = function(name, fn) {
     var listeners = this.getEventListeners(name, true);
     listeners.push(fn);
     return fn;
   };
 
+  /**
+  * remove event handl function from specify event listener
+  * @param {string} name - the name of event listener
+  * @param {function} fn - the event handle function to be removed,
+  * if does not specify, remove all event handle functions
+  */
   this.off = function(name, fn) { // TODO: event removing in proto
     var listeners = this.getEventListeners(name);
     if (!listeners) return;
@@ -80,6 +117,10 @@ var EventManager = KindaClass.extend('EventManager', function() {
     if (index !== -1) listeners.splice(index, 1);
   };
 
+  /**
+  * Function to emit event specified by name
+  * @param {string} name - the name of event which need to be emit
+  */
   this.emit = function(name) {
     if (globalEventSession.count) {
       var session = this.getEventSession();
@@ -91,6 +132,10 @@ var EventManager = KindaClass.extend('EventManager', function() {
     this.doEmit.apply(this, arguments);
   };
 
+  /**
+  * Function to do emit thing
+  * @param {string} name - the name of event listener
+  */
   this.doEmit = function(name) {
     // console.log('[' + this.getClass().name + ']', name, arguments[1], arguments[2]);
     var args = Array.prototype.slice.call(arguments, 1);
@@ -100,6 +145,12 @@ var EventManager = KindaClass.extend('EventManager', function() {
       callListners.call(proto, name, this, args);
   };
 
+  /**
+  * Function to call all events in the specify event listener
+  * @param {string} name - the name of event listener
+  * @param {object} object reference by this
+  * @param {array} arguments passed to event listener
+  */
   var callListners = function(name, thisArg, args) {
     var listeners = this.getEventListeners(name);
     if (!listeners) return;
@@ -128,8 +179,9 @@ var EventManager = KindaClass.extend('EventManager', function() {
     }
   };
 
-  // Async Events
-
+  /**
+  * async version of getEventListeners
+  */
   this.getAsyncEventListeners = function(name, createIfUndefined) {
     if (!this.hasOwnProperty('_asyncEventListeners')) {
       if (!createIfUndefined) return;
