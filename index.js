@@ -14,13 +14,17 @@ var KindaObject = KindaClass.extend('KindaObject', function() {
     return this.callSerializer();
   };
 
+  this.getCreator = function() {
+    return this._creator;
+  };
+
   this.setCreator = function(creator) {
     this._creator = creator;
   };
 
   this.callCreator = function() {
-    if (!this._creator) return;
-    this._creator.apply(this, arguments);
+    if (!this.getCreator()) return;
+    this.getCreator().apply(this, arguments);
   };
 
   this.setSerializer = function(serializer) {
