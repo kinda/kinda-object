@@ -96,7 +96,6 @@ var EventManager = KindaClass.extend('EventManager', function() {
   };
 
   this._emit = function(name) {
-    // console.log('[' + this.getClass().name + ']', name, arguments[1], arguments[2]);
     var args = Array.prototype.slice.call(arguments, 1);
     callListners.call(this, name, this, args);
     var proto = Object.getPrototypeOf(this);
@@ -126,7 +125,9 @@ var EventManager = KindaClass.extend('EventManager', function() {
         }, this);
       } else
         session[name] = args;
-      globalEventSession.deferredEvents.push({ object: this, name: name, args: args });
+      globalEventSession.deferredEvents.push(
+        { object: this, name: name, args: args }
+      );
     } else {
       this._emit.apply(this, arguments);
     }
@@ -166,7 +167,8 @@ var EventManager = KindaClass.extend('EventManager', function() {
       }
     }
     if (!listeners) return;
-    yield listeners.map(function(listener) { // TODO: listeners should run sequentially?
+    yield listeners.map(function(listener) {
+      // TODO: listeners should run sequentially?
       return listener.apply(that, args);
     });
   };
