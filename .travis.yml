@@ -4,13 +4,13 @@ node_js:
 sudo: false
 cache:
   directories:
-    - node_modules
+  - node_modules
 deploy:
   provider: npm
   email: mvila@3base.com
   api_key:
-    secure: k2UROr7uWIys6i3oCLqMh8jnUIlYwkf+40abUwZvTu7V7EZhkp1sI0aQFpUO98BUIH2WPDKJi1hV6nVhFk5SMUstunCVyBS/EcKQab1zHpJUc92IfbaVejPg44rIcmnqlXvst2xx5k8mJUtyMQk5D8zBKLxSzyprnORGbLxyWlw=
+    secure: CJD2540lhbdWKkKv4nK9DH0x4+/sRM0HiPLB6sDkmpuMMcerCv8juZ8A1sceky0Lp92INnJA7feJ9UwXqwIYFdHzpInhkgzhhheOB74gIkjpaIoabrO9UyMXqPCO1+hG2bOYXYVc50dCvwI37K5Tqs7bCqWTC/eAW4dZfuntP9Y=
 notifications:
   email: false
   slack:
-    secure: GRH2EgxcxM/LEOEeBnofllzXoHTttN0ZN4dSEdH5g18XA6efcFuGRmaUXbzViTB+U9e0e+3O2t2rKRyrlYsDgni9Mm/Za6+JOaoiGxhSwAFDiPwUKXQCgUrskhRxEMJdTwtp6bTRfkJGNUt0DTWdp2xFq3JLIs69m+lIyWwDqXY=
+    secure: JEgKC3OtxGyjrBt7LDNmB5+bwC7n4BGFUYMTGvxgj2HzwJjnAL9sJpc31guBm9JCnnDSOdowuE7K6eLuvvXwWmpd/j1Um5Fk1F10+Y9SAliDh7/LrWOKAjpLbsvZikpwE9QjUheXEd76bdtLbznSmSF5wp9fouSULFremXFrI0U=
