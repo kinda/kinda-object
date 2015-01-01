@@ -1,7 +1,9 @@
 language: node_js
 node_js:
 - '0.11'
-sudo: false
+branches:
+  only:
+  - master
 cache:
   directories:
   - node_modules
@@ -14,3 +16,4 @@ notifications:
   email: false
   slack:
     secure: JEgKC3OtxGyjrBt7LDNmB5+bwC7n4BGFUYMTGvxgj2HzwJjnAL9sJpc31guBm9JCnnDSOdowuE7K6eLuvvXwWmpd/j1Um5Fk1F10+Y9SAliDh7/LrWOKAjpLbsvZikpwE9QjUheXEd76bdtLbznSmSF5wp9fouSULFremXFrI0U=
+sudo: false
