@@ -10,7 +10,7 @@
     "url": "git://github.com/kinda/kinda-object"
   },
   "scripts": {
-    "test": "./node_modules/.bin/mocha --harmony --ui tdd"
+    "test": "mocha --harmony --ui tdd"
   },
   "dependencies": {
     "kinda-class": "^0.1.5",
