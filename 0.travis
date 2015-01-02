@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+- '0.11'
+branches:
+  only:
+  - master
+cache:
+  directories:
+  - node_modules
+deploy:
+  provider: npm
+  email: mvila@3base.com
+  api_key:
+    secure: M48A1im+Cr6SVntEhyq+pj/o8Lag0H15cgPo2dhDWOeCreEiLOInfERKIDlUCyURypp9xQLyw7u+TEOeyGtfhUQrtb4RVuIIHP+fgais3nI2WC90oO4Q3fb/V2trY3I/QVaR88VvDlPfHyJIKhCUkKixMnA8ny+ejzYZZWgCB4o=
+notifications:
+  email: false
+  slack:
+    secure: LwOrT09zwQCp4eDZMPv7M/ymQBghr/ASKo1pOMD0osVHrQAnrgZH14pOXcOUEkzJDrbmhUeZZ/tt3a/oBomfkPqHQh/fSAPQWUFbUsWm6gk4Lzf/NJj1+YHJRHTW5iFWMZVOuTESFt7hrTaRFxtLhVvaURpVvsfGWxiTQ9+kQWU=
+sudo: false
