@@ -167,7 +167,7 @@ var EventManager = KindaClass.extend('EventManager', function() {
     }
     if (!listeners) return;
     for (var i = 0; i < listeners.length; i++) {
-      listeners[i].apply(this, args);
+      yield listeners[i].apply(this, args);
     }
   };
 });
