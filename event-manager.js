@@ -152,9 +152,8 @@ var EventManager = KindaClass.extend('EventManager', function() {
   };
 
   this.emitAsync = function *(name) {
-    var that = this;
     var args = Array.prototype.slice.call(arguments, 1);
-    var listeners = that.getAsyncEventListeners(name);
+    var listeners = this.getAsyncEventListeners(name);
     var proto = Object.getPrototypeOf(this);
     if (proto.emitAsync) {
       var protoListeners = proto.getAsyncEventListeners(name);
@@ -167,10 +166,9 @@ var EventManager = KindaClass.extend('EventManager', function() {
       }
     }
     if (!listeners) return;
-    yield listeners.map(function(listener) {
-      // TODO: listeners should run sequentially?
-      return listener.apply(that, args);
-    });
+    for (var i = 0; i < listeners.length; i++) {
+      listeners[i].apply(this, args);
+    }
   };
 });
 
