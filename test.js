@@ -46,4 +46,17 @@ suite('KindaObject', function() {
     assert.strictEqual(person.firstname, 'Jean');
     assert.strictEqual(person.lastname, 'Dupont');
   });
+
+  test('context', function() {
+    let Company = KindaObject.extend('Company');
+    let Person = KindaObject.extend('Person');
+
+    let company = Company.create();
+    company.context.data = 123;
+    let person = company.create(Person);
+    assert.strictEqual(person.context.data, 123);
+    person.context.data = 456;
+    assert.strictEqual(person.context.data, 456);
+    assert.strictEqual(company.context.data, 123);
+  });
 });

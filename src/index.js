@@ -12,6 +12,10 @@ let KindaObject = KindaClass.extend('KindaObject', function() {
     }
   });
 
+  this.create = function(klass, ...args) {
+    return klass.createFrom(this, ...args);
+  };
+
   Object.defineProperty(this, 'serializer', {
     get() {
       return this._serializer;
@@ -37,7 +41,16 @@ let KindaObject = KindaClass.extend('KindaObject', function() {
 });
 
 KindaObject.create = function(...args) {
+  return this.createFrom(undefined, ...args);
+};
+
+KindaObject.createFrom = function(parent, ...args) {
   let obj = this.instantiate();
+  if (parent && parent.context) {
+    obj.context = Object.create(parent.context);
+  } else {
+    obj.context = {};
+  }
   if (obj.creator) obj.creator(...args);
   return obj;
 };
