@@ -1,26 +1,27 @@
-"use strict";
+'use strict';
 
-var _ = require('lodash');
-var KindaClass = require('kinda-class');
+let _ = require('lodash');
+let KindaClass = require('kinda-class');
 
-var globalEventSession = {
+let globalEventSession = {
   count: 0,
   objects: [],
   deferredEvents: []
 };
 
-var EventManager = KindaClass.extend('EventManager', function() {
+let EventManager = KindaClass.extend('EventManager', function() {
   this.beginEventSession = function() {
     globalEventSession.count++;
   };
 
   this.endEventSession = function() {
-    if (!globalEventSession.count)
+    if (!globalEventSession.count) {
       throw new Error('cannot end a non opened session');
+    }
     if (globalEventSession.count === 1) {
       while (globalEventSession.deferredEvents.length) {
-        var event = globalEventSession.deferredEvents.shift();
-        var args = [event.name].concat(event.args);
+        let event = globalEventSession.deferredEvents.shift();
+        let args = [event.name].concat(event.args);
         this._emit.apply(event.object, args);
       }
       globalEventSession.objects.forEach(function(obj) {
@@ -28,7 +29,7 @@ var EventManager = KindaClass.extend('EventManager', function() {
       });
       globalEventSession.objects = [];
       globalEventSession.deferredEvents = [];
-    };
+    }
     globalEventSession.count--;
   };
 
@@ -42,8 +43,7 @@ var EventManager = KindaClass.extend('EventManager', function() {
   };
 
   this.getEventSession = function() {
-    if (!globalEventSession.count)
-      throw new Error('no opened session');
+    if (!globalEventSession.count) throw new Error('no opened session');
     if (!this.hasOwnProperty('_eventSession')) {
       this._eventSession = {};
       globalEventSession.objects.push(this);
@@ -57,64 +57,62 @@ var EventManager = KindaClass.extend('EventManager', function() {
 
   this.getEventListeners = function(name, createIfUndefined) {
     if (!this.hasOwnProperty('_eventListeners')) {
-      if (!createIfUndefined) return;
+      if (!createIfUndefined) return undefined;
       this._eventListeners = {};
     }
     if (!this._eventListeners.hasOwnProperty(name)) {
-      if (!createIfUndefined) return;
+      if (!createIfUndefined) return undefined;
       this._eventListeners[name] = [];
     }
     return this._eventListeners[name];
-  }
+  };
 
   this.on = function(name, fn) {
-    var listeners = this.getEventListeners(name, true);
+    let listeners = this.getEventListeners(name, true);
     listeners.push(fn);
     return fn;
   };
 
   this.off = function(name, fn) { // TODO: event removing in proto
-    var listeners = this.getEventListeners(name);
+    let listeners = this.getEventListeners(name);
     if (!listeners) return;
     if (!fn) {
       listeners.length = 0;
       return;
     }
-    var index = listeners.indexOf(fn);
+    let index = listeners.indexOf(fn);
     if (index !== -1) listeners.splice(index, 1);
   };
 
   this.emit = function(name) {
     if (globalEventSession.count) {
-      var session = this.getEventSession();
-      var args = Array.prototype.slice.call(arguments, 1);
-      if (_.isEqual(session[name], args))
-        return; // Ignore the event if it was already emitted with the same args
+      let session = this.getEventSession();
+      let args = Array.prototype.slice.call(arguments, 1);
+      if (_.isEqual(session[name], args)) return; // Ignore the event if it was already emitted with the same args
       session[name] = args;
     }
     this._emit.apply(this, arguments);
   };
 
-  this._emit = function(name) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    callListners.call(this, name, this, args);
-    var proto = Object.getPrototypeOf(this);
-    if (proto._emit)
-      callListners.call(proto, name, this, args);
-  };
-
-  var callListners = function(name, thisArg, args) {
-    var listeners = this.getEventListeners(name);
+  let callListners = function(name, thisArg, args) {
+    let listeners = this.getEventListeners(name);
     if (!listeners) return;
     listeners.forEach(function(listener) {
       listener.apply(thisArg, args);
     });
   };
 
+  this._emit = function(name) {
+    let args = Array.prototype.slice.call(arguments, 1);
+    callListners.call(this, name, this, args);
+    let proto = Object.getPrototypeOf(this);
+    if (proto._emit) callListners.call(proto, name, this, args);
+  };
+
   this.emitLater = function(name) {
     if (globalEventSession.count) {
-      var session = this.getEventSession();
-      var args = Array.prototype.slice.call(arguments, 1);
+      let session = this.getEventSession();
+      let args = Array.prototype.slice.call(arguments, 1);
       if (_.isEqual(session[name], args)) {
         // The deferred event must move at the end of the queue
         globalEventSession.deferredEvents.some(function(event, index, events) {
@@ -123,10 +121,11 @@ var EventManager = KindaClass.extend('EventManager', function() {
             return true;
           }
         }, this);
-      } else
+      } else {
         session[name] = args;
+      }
       globalEventSession.deferredEvents.push(
-        { object: this, name: name, args: args }
+        { object: this, name, args }
       );
     } else {
       this._emit.apply(this, arguments);
@@ -135,28 +134,28 @@ var EventManager = KindaClass.extend('EventManager', function() {
 
   this.getAsyncEventListeners = function(name, createIfUndefined) {
     if (!this.hasOwnProperty('_asyncEventListeners')) {
-      if (!createIfUndefined) return;
+      if (!createIfUndefined) return undefined;
       this._asyncEventListeners = {};
     }
     if (!this._asyncEventListeners.hasOwnProperty(name)) {
-      if (!createIfUndefined) return;
+      if (!createIfUndefined) return undefined;
       this._asyncEventListeners[name] = [];
     }
     return this._asyncEventListeners[name];
-  }
+  };
 
   this.onAsync = function(name, fn) {
-    var listeners = this.getAsyncEventListeners(name, true);
+    let listeners = this.getAsyncEventListeners(name, true);
     listeners.push(fn);
     return fn;
   };
 
   this.emitAsync = function *(name) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    var listeners = this.getAsyncEventListeners(name);
-    var proto = Object.getPrototypeOf(this);
+    let args = Array.prototype.slice.call(arguments, 1);
+    let listeners = this.getAsyncEventListeners(name);
+    let proto = Object.getPrototypeOf(this);
     if (proto.emitAsync) {
-      var protoListeners = proto.getAsyncEventListeners(name);
+      let protoListeners = proto.getAsyncEventListeners(name);
       if (protoListeners) {
         if (listeners) {
           listeners = listeners.concat(protoListeners);
@@ -166,7 +165,7 @@ var EventManager = KindaClass.extend('EventManager', function() {
       }
     }
     if (!listeners) return;
-    for (var i = 0; i < listeners.length; i++) {
+    for (let i = 0; i < listeners.length; i++) {
       yield listeners[i].apply(this, args);
     }
   };
