@@ -46,39 +46,4 @@ suite('KindaObject', function() {
     assert.strictEqual(person.firstname, 'Jean');
     assert.strictEqual(person.lastname, 'Dupont');
   });
-
-  test('create with context', function() {
-    let Company = KindaObject.extend('Company');
-    let Person = KindaObject.extend('Person');
-
-    let company = Company.create();
-    company.context.data = 123;
-    let person = company.create(Person);
-    assert.strictEqual(person.context.data, 123);
-    person.context.data = 456;
-    assert.strictEqual(person.context.data, 456);
-    assert.strictEqual(company.context.data, 123);
-  });
-
-  test('unserialize with context', function() {
-    let Company = KindaObject.extend('Company');
-    let Person = KindaObject.extend('Person', function() {
-      this.unserializer = function(json) {
-        this.firstname = json.firstname;
-        this.lastname = json.lastname;
-      };
-    });
-
-    let company = Company.create();
-    company.context.data = 123;
-    let person = company.unserialize(
-      Person, { firstname: 'Jean', lastname: 'Dupont' }
-    );
-    assert.strictEqual(person.firstname, 'Jean');
-    assert.strictEqual(person.lastname, 'Dupont');
-    assert.strictEqual(person.context.data, 123);
-    person.context.data = 456;
-    assert.strictEqual(person.context.data, 456);
-    assert.strictEqual(company.context.data, 123);
-  });
 });
