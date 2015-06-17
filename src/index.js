@@ -42,10 +42,10 @@ KindaObject.create = function(...args) {
   return obj;
 };
 
-KindaObject.unserialize = function(json) {
+KindaObject.unserialize = function(...args) {
   let obj = this.instantiate();
   if (!obj.unserializer) throw new Error('unserializer is undefined');
-  obj.unserializer(json);
+  obj.unserializer(...args);
   return obj;
 };
 
