@@ -41,7 +41,7 @@ suite('KindaObject', function() {
         assert.isFunction(bar.isCold);
       });
 
-      test('create()', function() {
+      test('create() and new', function() {
         let Person = KindaObject.extend('Person', function() {
           this.creator = function(firstname, lastname) {
             this.firstname = firstname;
@@ -49,9 +49,13 @@ suite('KindaObject', function() {
           };
         });
 
-        let person = Person.create('Jean', 'Dupont');
-        assert.strictEqual(person.firstname, 'Jean');
-        assert.strictEqual(person.lastname, 'Dupont');
+        let person1 = Person.create('Jean', 'Dupont');
+        assert.strictEqual(person1.firstname, 'Jean');
+        assert.strictEqual(person1.lastname, 'Dupont');
+
+        let person2 = new Person('Pierre', 'Durand');
+        assert.strictEqual(person2.firstname, 'Pierre');
+        assert.strictEqual(person2.lastname, 'Durand');
       });
 
       test('prototype', function() {
@@ -106,11 +110,6 @@ suite('KindaObject', function() {
         assert.deepEqual(bar.superclasses, [KindaObject, Foo]);
         let baz = Baz.instantiate();
         assert.deepEqual(baz.superclasses, [KindaObject, Foo, Bar]);
-      });
-
-      test('prototype', function() {
-        let bar = Bar.instantiate();
-        assert.strictEqual(Bar.prototype.isCold, bar.isCold);
       });
 
       test('isInstanceOf()', function() {
@@ -176,27 +175,25 @@ suite('KindaObject', function() {
   });
 
   suite('Diamond problem', function() {
-    let count = 0;
-
-    let Top = KindaObject.extend('Top', function() {
-      count++;
-    });
-
-    let Left = Top.extend('Left');
-
-    let Right = Top.extend('Right');
-
-    let Bottom = Top.extend('Bottom', function() {
-      this.include(Left);
-      this.include(Right);
-    });
-
     test('top constructor should only be called once', function() {
-      assert.strictEqual(count, 0);
-      Bottom.instantiate();
+      let count = 0;
+
+      let Top = KindaObject.extend('Top', function() {
+        count++;
+      });
       assert.strictEqual(count, 1);
-      Bottom.instantiate();
-      assert.strictEqual(count, 1);
+
+      let Left = Top.extend('Left');
+      assert.strictEqual(count, 2);
+
+      let Right = Top.extend('Right');
+      assert.strictEqual(count, 3);
+
+      Top.extend('Bottom', function() {
+        this.include(Left);
+        this.include(Right);
+      });
+      assert.strictEqual(count, 4);
     });
   });
 

@@ -3,32 +3,14 @@
 let semver = require('semver');
 let pkg = require('../package.json');
 
-let KindaObject = {
-  _name: 'KindaObject',
-  _version: pkg.version,
-  isKindaClass: true
+let constructPrototype;
+
+let KindaObject = function KindaObject() {
+  return KindaObject.create.apply(KindaObject, arguments);
 };
 
-Object.defineProperty(KindaObject, 'name', {
-  get() {
-    return this._name;
-  }
-});
-
-Object.defineProperty(KindaObject, 'version', {
-  get() {
-    return this._version;
-  }
-});
-
-Object.defineProperty(KindaObject, 'prototype', {
-  get() {
-    if (!this._prototype) {
-      this._prototype = this.constructPrototype();
-    }
-    return this._prototype;
-  }
-});
+KindaObject.version = pkg.version;
+KindaObject.isKindaClass = true;
 
 KindaObject.constructor = function() {};
 
@@ -36,7 +18,7 @@ KindaObject.extend = function(name, version, constructor) {
   if (typeof name !== 'string') {
     constructor = version;
     version = name;
-    name = 'Sub' + this._name;
+    name = 'Sub' + this.name;
   }
 
   if (typeof version !== 'string') {
@@ -45,14 +27,26 @@ KindaObject.extend = function(name, version, constructor) {
   }
 
   let parent = this;
-  let child = {
-    _name: name,
-    _version: version
-  };
+
+  /*eslint-disable */
+  // Unfortunately, eval() is necessary to define a named function
+  // TODO: sanitize the 'name' variable
+  let child = eval(`
+    (function() {
+      function ${name}() {
+        return child.create.apply(child, arguments);
+      };
+      return ${name};
+    })();
+  `);
+  /*eslint-enable */
+
+  child.version = version;
 
   // Copy class properties
   let keys = Object.getOwnPropertyNames(parent);
   for (let key of keys) {
+    if (key in child) continue;
     if (key.startsWith('_')) continue; // Don't copy property starting with a '_'
     let descriptor = Object.getOwnPropertyDescriptor(parent, key);
     Object.defineProperty(child, key, descriptor);
@@ -71,6 +65,8 @@ KindaObject.extend = function(name, version, constructor) {
       }
     }
   };
+
+  constructPrototype(child);
 
   return child;
 };
@@ -96,53 +92,44 @@ KindaObject.isClassOf = function(instance) {
   return !!(instance && instance.isInstanceOf && instance.isInstanceOf(this));
 };
 
-KindaObject.constructPrototype = function() {
-  let currentClass = this;
+let checkCompatibility = function(v1, v2) {
+  if (semver.satisfies(v1, '^' + v2)) return true;
+  if (semver.satisfies(v2, '^' + v1)) return true;
+  return false;
+};
+
+let compareClasses = function(a, b, errorIfNotCompatible) {
+  if (a.name !== b.name) return false;
+  if (!a.version || !b.version) return true;
+  if (!checkCompatibility(a.version, b.version)) {
+    if (errorIfNotCompatible) {
+      throw new Error(`class ${a.name} v${a.version} is not compatible with class ${b.name} v${b.version}`);
+    }
+    return false;
+  }
+  if (semver.lte(a.version, b.version)) return true;
+  return false;
+};
+
+constructPrototype = function(klass) {
   let superclasses = [];
   let creator;
   let serializer;
   let unserializer;
 
-  let checkCompatibility = function(v1, v2) {
-    if (semver.satisfies(v1, '^' + v2)) return true;
-    if (semver.satisfies(v2, '^' + v1)) return true;
-    return false;
-  };
-
-  let compareClasses = function(a, b, errorIfNotCompatible) {
-    if (a.name !== b.name) return false;
-    if (!a.version || !b.version) return true;
-    if (!checkCompatibility(a.version, b.version)) {
-      if (errorIfNotCompatible) {
-        throw new Error(`class ${a.name} v${a.version} is not compatible with class ${b.name} v${b.version}`);
-      }
-      return false;
-    }
-    if (semver.lte(a.version, b.version)) return true;
-    return false;
-  };
-
-  let prototype = {};
-
-  Object.defineProperty(prototype, 'class', {
+  Object.defineProperty(klass.prototype, 'class', {
     get() {
-      return currentClass;
+      return klass;
     }
   });
 
-  Object.defineProperty(prototype, 'superclasses', {
+  Object.defineProperty(klass.prototype, 'superclasses', {
     get() {
       return superclasses;
     }
   });
 
-  Object.defineProperty(prototype, 'prototype', {
-    get() {
-      return prototype;
-    }
-  });
-
-  Object.defineProperty(prototype, 'creator', {
+  Object.defineProperty(klass.prototype, 'creator', {
     get() {
       return creator;
     },
@@ -151,7 +138,7 @@ KindaObject.constructPrototype = function() {
     }
   });
 
-  Object.defineProperty(prototype, 'serializer', {
+  Object.defineProperty(klass.prototype, 'serializer', {
     get() {
       return serializer;
     },
@@ -160,7 +147,7 @@ KindaObject.constructPrototype = function() {
     }
   });
 
-  Object.defineProperty(prototype, 'unserializer', {
+  Object.defineProperty(klass.prototype, 'unserializer', {
     get() {
       return unserializer;
     },
@@ -169,7 +156,7 @@ KindaObject.constructPrototype = function() {
     }
   });
 
-  prototype.include = function(other) {
+  klass.prototype.include = function(other) {
     let isAlreadyIncluded = this.superclasses.some(superclass => {
       return compareClasses(other, superclass, true);
     });
@@ -179,7 +166,7 @@ KindaObject.constructPrototype = function() {
     return this;
   };
 
-  prototype.isInstanceOf = function(other) {
+  klass.prototype.isInstanceOf = function(other) {
     if (!(other && other.isKindaClass)) return false;
     if (compareClasses(this.class, other)) return true;
     return this.superclasses.some(superclass => {
@@ -187,14 +174,12 @@ KindaObject.constructPrototype = function() {
     });
   };
 
-  prototype.serialize = prototype.toJSON = function() {
+  klass.prototype.serialize = klass.prototype.toJSON = function() {
     if (!this.serializer) throw new Error('serializer is undefined');
     return this.serializer();
   };
 
-  this.constructor.call(prototype);
-
-  return prototype;
+  klass.constructor.call(klass.prototype);
 };
 
 module.exports = KindaObject;
