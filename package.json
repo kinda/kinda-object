@@ -26,7 +26,7 @@
     "babel": "^5.8.20",
     "babel-eslint": "^4.0.5",
     "chai": "^2.3.0",
-    "eslint": "^1.0.0",
+    "eslint": "^1.1.0",
     "eslint-config-kinda": "^0.2.0",
     "mocha": "^2.2.5"
   }
