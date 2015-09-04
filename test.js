@@ -1,7 +1,7 @@
 'use strict';
 
-let assert = require('chai').assert;
-let KindaObject = require('./src');
+import { assert } from 'chai';
+import KindaObject from './src';
 
 suite('KindaObject', function() {
   test('set a static method', function() {

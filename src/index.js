@@ -1,9 +1,9 @@
 'use strict';
 
-let KindaInstantiable = require('kinda-instantiable');
-let pkg = require('../package.json');
+import KindaInstantiable from 'kinda-instantiable';
+import pkg from '../package.json';
 
-let KindaObject = KindaInstantiable.extend('KindaObject', pkg.version, function() {
+export default KindaInstantiable.extend('KindaObject', pkg.version, function() {
   // === Methods ===
 
   let _setMethod = function(klass, name, fn, isStatic) {
@@ -188,5 +188,3 @@ let KindaObject = KindaInstantiable.extend('KindaObject', pkg.version, function(
     this.overloadStaticMethod('unserializer', fn);
   });
 });
-
-module.exports = KindaObject;
