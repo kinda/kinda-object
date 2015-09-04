@@ -1,185 +1,192 @@
 'use strict';
 
-let semver = require('semver');
+let KindaInstantiable = require('kinda-instantiable');
 let pkg = require('../package.json');
 
-let constructPrototype;
+let KindaObject = KindaInstantiable.extend('KindaObject', pkg.version, function() {
+  // === Methods ===
 
-let KindaObject = function KindaObject() {
-  return KindaObject.create.apply(KindaObject, arguments);
-};
+  let _setMethod = function(klass, name, fn, isStatic) {
+    let target = isStatic ? klass : klass.prototype;
 
-KindaObject.version = pkg.version;
-KindaObject.isKindaClass = true;
-
-KindaObject.constructor = function() {};
-
-KindaObject.extend = function(name, version, constructor) {
-  if (typeof name !== 'string') {
-    constructor = version;
-    version = name;
-    name = 'Sub' + this.name;
-  }
-
-  if (typeof version !== 'string') {
-    constructor = version;
-    version = undefined;
-  }
-
-  let parent = this;
-
-  /*eslint-disable */
-  // Unfortunately, eval() is necessary to define a named function
-  // TODO: sanitize the 'name' variable
-  let child = eval(`
-    (function() {
-      function ${name}() {
-        return child.create.apply(child, arguments);
-      };
-      return ${name};
-    })();
-  `);
-  /*eslint-enable */
-
-  child.version = version;
-
-  // Copy class properties
-  let keys = Object.getOwnPropertyNames(parent);
-  for (let key of keys) {
-    if (key in child) continue;
-    if (key.startsWith('_')) continue; // Don't copy property starting with a '_'
-    let descriptor = Object.getOwnPropertyDescriptor(parent, key);
-    Object.defineProperty(child, key, descriptor);
-  }
-
-  child.constructor = function() {
-    this.include(parent);
-    if (!constructor) return;
-    if (typeof constructor === 'function') {
-      constructor.call(this);
-    } else {
-      let constructorKeys = Object.getOwnPropertyNames(constructor);
-      for (let key of constructorKeys) {
-        let descriptor = Object.getOwnPropertyDescriptor(constructor, key);
-        Object.defineProperty(this, key, descriptor);
+    if (!klass.isPatching() && name in target) {
+      if (isStatic) {
+        throw new Error(`Static method '${name}' is already defined. Use overloadStaticMethod() to overload it.`);
+      } else {
+        throw new Error(`Method '${name}' is already defined. Use overloadMethod() to overload it.`);
       }
     }
+
+    target[name] = fn;
   };
 
-  constructPrototype(child);
+  _setMethod(this, 'setStaticMethod', function(name, fn) {
+    _setMethod(this, name, fn, true);
+  }, true);
 
-  return child;
-};
-
-KindaObject.instantiate = function() {
-  return Object.create(this.prototype);
-};
-
-KindaObject.create = function(...args) {
-  let obj = this.instantiate();
-  if (obj.creator) obj.creator(...args);
-  return obj;
-};
-
-KindaObject.unserialize = function(...args) {
-  let obj = this.instantiate();
-  if (!obj.unserializer) throw new Error('unserializer is undefined');
-  obj.unserializer(...args);
-  return obj;
-};
-
-KindaObject.isClassOf = function(instance) {
-  return !!(instance && instance.isInstanceOf && instance.isInstanceOf(this));
-};
-
-let checkCompatibility = function(v1, v2) {
-  if (semver.satisfies(v1, '^' + v2)) return true;
-  if (semver.satisfies(v2, '^' + v1)) return true;
-  return false;
-};
-
-let compareClasses = function(a, b, errorIfNotCompatible) {
-  if (a.name !== b.name) return false;
-  if (!a.version || !b.version) return true;
-  if (!checkCompatibility(a.version, b.version)) {
-    if (errorIfNotCompatible) {
-      throw new Error(`class ${a.name} v${a.version} is not compatible with class ${b.name} v${b.version}`);
-    }
-    return false;
-  }
-  if (semver.lte(a.version, b.version)) return true;
-  return false;
-};
-
-constructPrototype = function(klass) {
-  let superclasses = [];
-  let creator;
-  let serializer;
-  let unserializer;
-
-  Object.defineProperty(klass.prototype, 'class', {
-    get() {
-      return klass;
-    }
+  this.setStaticMethod('setMethod', function(name, fn) {
+    _setMethod(this, name, fn);
   });
 
-  Object.defineProperty(klass.prototype, 'superclasses', {
-    get() {
-      return superclasses;
-    }
-  });
+  let _overloadMethod = function(klass, name, fn, isStatic) {
+    let target = isStatic ? klass : klass.prototype;
 
-  Object.defineProperty(klass.prototype, 'creator', {
-    get() {
-      return creator;
-    },
-    set(val) {
-      creator = val;
-    }
-  });
+    let oldMethod = target[name];
 
-  Object.defineProperty(klass.prototype, 'serializer', {
-    get() {
-      return serializer;
-    },
-    set(val) {
-      serializer = val;
+    if (!oldMethod) {
+      if (isStatic) {
+        throw new Error(`Static method '${name}' is undefined.`);
+      } else {
+        throw new Error(`Method '${name}' is undefined.`);
+      }
     }
-  });
 
-  Object.defineProperty(klass.prototype, 'unserializer', {
-    get() {
-      return unserializer;
-    },
-    set(val) {
-      unserializer = val;
-    }
-  });
+    let newMethod = function(...args) {
+      return fn.call(this, oldMethod.bind(this), ...args);
+    };
 
-  klass.prototype.include = function(other) {
-    let isAlreadyIncluded = this.superclasses.some(superclass => {
-      return compareClasses(other, superclass, true);
-    });
-    if (isAlreadyIncluded) return this;
-    other.constructor.call(this);
-    this.superclasses.push(other);
-    return this;
+    target[name] = newMethod;
   };
 
-  klass.prototype.isInstanceOf = function(other) {
-    if (!(other && other.isKindaClass)) return false;
-    if (compareClasses(this.class, other)) return true;
-    return this.superclasses.some(superclass => {
-      return compareClasses(superclass, other);
-    });
+  this.setStaticMethod('overloadStaticMethod', function(name, fn) {
+    _overloadMethod(this, name, fn, true);
+  });
+
+  this.setStaticMethod('overloadMethod', function(name, fn) {
+    _overloadMethod(this, name, fn);
+  });
+
+  // === Properties ===
+
+  let _setProperty = function(klass, name, descriptor, isStatic) {
+    let target = isStatic ? klass : klass.prototype;
+
+    if (!klass.isPatching() && name in target) {
+      if (isStatic) {
+        throw new Error(`Static property '${name}' is already defined. Use overloadStaticProperty() to overload it.`);
+      } else {
+        throw new Error(`Property '${name}' is already defined. Use overloadProperty() to overload it.`);
+      }
+    }
+
+    if (typeof descriptor === 'function') {
+      descriptor = { get: descriptor };
+    }
+
+    descriptor = {
+      get: descriptor.get,
+      set: descriptor.set,
+      configurable: descriptor.configurable || true,
+      enumerable: descriptor.enumeratble || true
+    };
+
+    Object.defineProperty(target, name, descriptor);
   };
 
-  klass.prototype.serialize = klass.prototype.toJSON = function() {
-    if (!this.serializer) throw new Error('serializer is undefined');
-    return this.serializer();
+  this.setStaticMethod('setStaticProperty', function(name, descriptor) {
+    _setProperty(this, name, descriptor, true);
+  });
+
+  this.setStaticMethod('setProperty', function(name, descriptor) {
+    _setProperty(this, name, descriptor);
+  });
+
+  let _overloadProperty = function(klass, name, descriptor, isStatic) {
+    let target = isStatic ? klass : klass.prototype;
+
+    let oldDescriptor = Object.getOwnPropertyDescriptor(target, name);
+
+    if (!oldDescriptor) {
+      if (isStatic) {
+        throw new Error(`Static property '${name}' is undefined.`);
+      } else {
+        throw new Error(`Property '${name}' is undefined.`);
+      }
+    }
+
+    if (typeof descriptor === 'function') {
+      descriptor = { get: descriptor };
+    }
+
+    let newGet;
+    if (descriptor.get) {
+      if (!oldDescriptor.get) {
+        if (isStatic) {
+          throw new Error(`Static property '${name}' has no getter.`);
+        } else {
+          throw new Error(`Property '${name}' has no getter.`);
+        }
+      }
+      newGet = function() {
+        return descriptor.get.call(this, oldDescriptor.get.bind(this));
+      };
+    }
+
+    let newSet;
+    if (descriptor.set) {
+      if (!oldDescriptor.set) {
+        if (isStatic) {
+          throw new Error(`Static property '${name}' has no setter.`);
+        } else {
+          throw new Error(`Property '${name}' has no setter.`);
+        }
+      }
+      newSet = function(value) {
+        return descriptor.set.call(this, oldDescriptor.set.bind(this), value);
+      };
+    }
+
+    let newDescriptor = {
+      get: newGet,
+      set: newSet,
+      configurable: descriptor.configurable || true,
+      enumerable: descriptor.enumeratble || true
+    };
+
+    Object.defineProperty(target, name, newDescriptor);
   };
 
-  klass.constructor.call(klass.prototype);
-};
+  this.setStaticMethod('overloadStaticProperty', function(name, descriptor) {
+    _overloadProperty(this, name, descriptor, true);
+  });
+
+  this.setStaticMethod('overloadProperty', function(name, descriptor) {
+    _overloadProperty(this, name, descriptor);
+  });
+
+  // === Helpers ===
+
+  this.setStaticMethod('setInitializer', function(fn) {
+    this.setStaticMethod('initializer', fn);
+  });
+
+  this.setStaticMethod('overloadInitializer', function(fn) {
+    this.overloadStaticMethod('initializer', fn);
+  });
+
+  this.setStaticMethod('setCreator', function(fn) {
+    this.setStaticMethod('creator', fn);
+  });
+
+  this.setStaticMethod('overloadCreator', function(fn) {
+    this.overloadStaticMethod('creator', fn);
+  });
+
+  this.setStaticMethod('setSerializer', function(fn) {
+    this.setStaticMethod('serializer', fn);
+  });
+
+  this.setStaticMethod('overloadSerializer', function(fn) {
+    this.overloadStaticMethod('serializer', fn);
+  });
+
+  this.setStaticMethod('setUnserializer', function(fn) {
+    this.setStaticMethod('unserializer', fn);
+  });
+
+  this.setStaticMethod('overloadUnserializer', function(fn) {
+    this.overloadStaticMethod('unserializer', fn);
+  });
+});
 
 module.exports = KindaObject;

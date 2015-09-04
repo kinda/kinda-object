@@ -4,266 +4,252 @@ let assert = require('chai').assert;
 let KindaObject = require('./src');
 
 suite('KindaObject', function() {
-  suite('Simple classes hierarchy', function() {
-    let Foo = KindaObject.extend('Foo', function() {
-      this.cool = 'very';
+  test('set a static method', function() {
+    let Obj = KindaObject.extend('Obj', function() {
+      this.setStaticMethod('echo', function(something) {
+        return something;
+      });
     });
 
-    Foo.hello = 'Hello';
-    Foo._bye = 'Bye';
+    assert.strictEqual(Obj.echo('hi'), 'hi');
 
-    let Bar = Foo.extend('Bar', function() {
-      this.isCold = function() {
-        return this.cool === 'very' ? 'yes' : 'no';
-      };
-    });
-
-    let Baz = KindaObject.extend('Baz', function() {
-      this.include(Bar);
-    });
-
-    let UnnamedClass = Foo.extend();
-
-    suite('Class methods', function() {
-      test('extend()', function() {
-        assert.strictEqual(Bar.hello, 'Hello');
-        assert.isUndefined(Bar._bye);
-      });
-
-      test('name', function() {
-        assert.strictEqual(Foo.name, 'Foo');
-        assert.strictEqual(UnnamedClass.name, 'SubFoo');
-      });
-
-      test('instantiate()', function() {
-        let bar = Bar.instantiate();
-        assert.strictEqual(bar.cool, 'very');
-        assert.isFunction(bar.isCold);
-      });
-
-      test('create() and new', function() {
-        let Person = KindaObject.extend('Person', function() {
-          this.creator = function(firstname, lastname) {
-            this.firstname = firstname;
-            this.lastname = lastname;
-          };
+    assert.throws(function() {
+      Obj.extend('SubObj', function() {
+        this.setStaticMethod('echo', function(something) {
+          return something;
         });
-
-        let person1 = Person.create('Jean', 'Dupont');
-        assert.strictEqual(person1.firstname, 'Jean');
-        assert.strictEqual(person1.lastname, 'Dupont');
-
-        let person2 = new Person('Pierre', 'Durand');
-        assert.strictEqual(person2.firstname, 'Pierre');
-        assert.strictEqual(person2.lastname, 'Durand');
       });
+    });
+  });
 
-      test('prototype', function() {
-        let bar = Bar.instantiate();
-        assert.strictEqual(Bar.prototype.isCold, bar.isCold);
+  test('set a method', function() {
+    let Obj = KindaObject.extend('Obj', function() {
+      this.setMethod('echo', function(something) {
+        return something;
       });
+    });
 
-      test('isKindaClass', function() {
-        assert.isTrue(Bar.isKindaClass);
-      });
+    let obj = Obj.create();
+    assert.strictEqual(obj.echo('hi'), 'hi');
 
-      test('isClassOf()', function() {
-        let baz = Baz.instantiate();
-        assert.isTrue(Baz.isClassOf(baz));
-        assert.isTrue(Bar.isClassOf(baz));
-        assert.isTrue(Foo.isClassOf(baz));
-        assert.isTrue(KindaObject.isClassOf(baz));
-        let Qux = KindaObject.extend('Qux');
-        assert.isFalse(Qux.isClassOf(baz));
-      });
-
-      test('unserialize()', function() {
-        let Person = KindaObject.extend('Person', function() {
-          this.unserializer = function(json) {
-            this.firstname = json.firstname;
-            this.lastname = json.lastname;
-          };
+    assert.throws(function() {
+      Obj.extend('SubObj', function() {
+        this.setMethod('echo', function(something) {
+          return something;
         });
+      });
+    });
+  });
 
-        let person = Person.unserialize({ firstname: 'Jean', lastname: 'Dupont' });
-        assert.strictEqual(person.firstname, 'Jean');
-        assert.strictEqual(person.lastname, 'Dupont');
+  test('overload a static method', function() {
+    let Obj = KindaObject.extend('Obj', function() {
+      this.setStaticMethod('echo', function(something) {
+        return something;
       });
     });
 
-    suite('Instance methods', function() {
-      test('include()', function() {
-        let baz = Baz.instantiate();
-        assert.strictEqual(baz.cool, 'very');
-        assert.isFunction(baz.isCold);
+    assert.strictEqual(Obj.echo('hi'), 'hi');
+
+    let SubObj = Obj.extend('SubObj', function() {
+      this.overloadStaticMethod('echo', function(supr, something) {
+        return supr(something).toUpperCase();
+      });
+    });
+
+    assert.strictEqual(SubObj.echo('hi'), 'HI');
+
+    assert.throws(function() {
+      Obj.extend('SubObj', function() {
+        this.overloadStaticMethod('missingMethod', function() {});
+      });
+    });
+  });
+
+  test('overload a method', function() {
+    let Obj = KindaObject.extend('Obj', function() {
+      this.setMethod('echo', function(something) {
+        return something;
+      });
+    });
+
+    let obj = Obj.create();
+    assert.strictEqual(obj.echo('hi'), 'hi');
+
+    let SubObj = Obj.extend('SubObj', function() {
+      this.overloadMethod('echo', function(supr, something) {
+        return supr(something).toUpperCase();
+      });
+    });
+
+    let subObj = SubObj.create();
+    assert.strictEqual(subObj.echo('hi'), 'HI');
+
+    assert.throws(function() {
+      Obj.extend('SubObj', function() {
+        this.overloadMethod('missingMethod', function() {});
+      });
+    });
+  });
+
+  test('patch a static method', function() {
+    let Obj = KindaObject.extend('Obj', '0.1.0', function() {
+      this.setStaticMethod('echo', function(something) {
+        return something;
+      });
+    });
+
+    assert.strictEqual(Obj.echo('hi'), 'hi');
+
+    let NewObj = KindaObject.extend('Obj', '0.1.1', function() {
+      this.setStaticMethod('echo', function(something) {
+        return something.toUpperCase();
+      });
+    });
+
+    let Mixin = NewObj.extend('Mixin');
+
+    let SubObj = Obj.extend('SubObj', function() {
+      this.include(Mixin); // Obj should be upgraded to NewObj
+    });
+
+    assert.strictEqual(SubObj.echo('hi'), 'HI');
+  });
+
+  test('patch a method', function() {
+    let Obj = KindaObject.extend('Obj', '0.1.0', function() {
+      this.setMethod('echo', function(something) {
+        return something;
+      });
+    });
+
+    let obj = Obj.create();
+    assert.strictEqual(obj.echo('hi'), 'hi');
+
+    let NewObj = KindaObject.extend('Obj', '0.1.1', function() {
+      this.setMethod('echo', function(something) {
+        return something.toUpperCase();
+      });
+    });
+
+    let Mixin = NewObj.extend('Mixin');
+
+    let SubObj = Obj.extend('SubObj', function() {
+      this.include(Mixin); // Obj should be upgraded to NewObj
+    });
+
+    let subObj = SubObj.create();
+    assert.strictEqual(subObj.echo('hi'), 'HI');
+  });
+
+  test('set a property', function() {
+    let Movie = KindaObject.extend('Movie', function() {
+      this.setProperty('title', {
+        get() {
+          return this._title || 'Untitled';
+        },
+        set(title) {
+          this._title = title;
+        }
       });
 
-      test('class', function() {
-        let foo = Foo.instantiate();
-        assert.strictEqual(foo.class, Foo);
+      this.setProperty('bigTitle', function() {
+        return this.title.toUpperCase();
       });
+    });
 
-      test('superclasses', function() {
-        let foo = Foo.instantiate();
-        assert.deepEqual(foo.superclasses, [KindaObject]);
-        let bar = Bar.instantiate();
-        assert.deepEqual(bar.superclasses, [KindaObject, Foo]);
-        let baz = Baz.instantiate();
-        assert.deepEqual(baz.superclasses, [KindaObject, Foo, Bar]);
-      });
+    let movie = Movie.create();
+    assert.strictEqual(movie.title, 'Untitled');
+    assert.strictEqual(movie.bigTitle, 'UNTITLED');
+    movie.title = 'Hello, World!';
+    assert.strictEqual(movie.title, 'Hello, World!');
+    assert.strictEqual(movie.bigTitle, 'HELLO, WORLD!');
 
-      test('isInstanceOf()', function() {
-        let foo = Foo.instantiate();
-        assert.isTrue(foo.isInstanceOf(Foo));
-        assert.isFalse(foo.isInstanceOf(Bar));
-      });
-
-      test('serialize()', function() {
-        let Person = KindaObject.extend('Person', function() {
-          this.serializer = function() {
-            return { firstname: this.firstname, lastname: this.lastname };
-          };
+    assert.throws(function() {
+      Movie.extend('NewMovie', function() {
+        this.setProperty('title', function() {
+          return '???';
         });
-
-        let person = Person.create();
-        person.firstname = 'Jean';
-        person.lastname = 'Dupont';
-        let json = person.serialize();
-        assert.deepEqual(
-          json,
-          { firstname: 'Jean', lastname: 'Dupont' }
-        );
       });
     });
   });
 
-  suite('Object constructor', function() {
-    test('simple class', function() {
-      let French = KindaObject.extend('French', {
-        hello: 'Bonjour',
-        bye: 'Au revoir'
+  test('overload a property', function() {
+    let Movie = KindaObject.extend('Movie', function() {
+      this.setProperty('title', {
+        get() {
+          return this._title;
+        },
+        set(title) {
+          this._title = title;
+        }
       });
+    });
 
-      assert.strictEqual(French.prototype.hello, 'Bonjour');
-      assert.strictEqual(French.prototype.bye, 'Au revoir');
+    let movie = Movie.create();
+    assert.isUndefined(movie.title);
+    movie.title = 'Hello, World!';
+    assert.strictEqual(movie.title, 'Hello, World!');
+
+    let NewMovie = Movie.extend('NewMovie', function() {
+      this.overloadProperty('title', {
+        get(supr) {
+          return supr() || 'Untitled';
+        },
+        set(supr, title) {
+          supr(title.toUpperCase());
+        }
+      });
+    });
+
+    let newMovie = NewMovie.create();
+    assert.strictEqual(newMovie.title, 'Untitled');
+    newMovie.title = 'Hello, World!';
+    assert.strictEqual(newMovie.title, 'HELLO, WORLD!');
+
+    assert.throws(function() {
+      Movie.extend('NewMovie', function() {
+        this.overloadMethod('missingMethod', function() {});
+      });
     });
   });
 
-  suite('Name conflict', function() {
-    test('extend a class with the same name', function() {
-      let Person = KindaObject.extend('Person', function() {
-        this.isNice = 'yes';
-        this.isCool = 'yes';
-      });
-
-      Person = Person.extend('Person', function() {
-        this.isCool = 'absolutely';
-      });
-
-      let person = Person.instantiate();
-      assert.strictEqual(person.isNice, 'yes');
-      assert.strictEqual(person.isCool, 'absolutely');
-
-      Person = Person.extend('Person', function() {
-        this.isCool = 'definitely';
-      });
-
-      person = Person.instantiate();
-      assert.strictEqual(person.isNice, 'yes');
-      assert.strictEqual(person.isCool, 'definitely');
-    });
-  });
-
-  suite('Diamond problem', function() {
-    test('top constructor should only be called once', function() {
-      let count = 0;
-
-      let Top = KindaObject.extend('Top', function() {
-        count++;
-      });
-      assert.strictEqual(count, 1);
-
-      let Left = Top.extend('Left');
-      assert.strictEqual(count, 2);
-
-      let Right = Top.extend('Right');
-      assert.strictEqual(count, 3);
-
-      Top.extend('Bottom', function() {
-        this.include(Left);
-        this.include(Right);
-      });
-      assert.strictEqual(count, 4);
-    });
-  });
-
-  suite('Versioning', function() {
-    test('version', function() {
-      let A = KindaObject.extend('A');
-      assert.isUndefined(A.version);
-      let B = KindaObject.extend('B', '0.1.0');
-      assert.strictEqual(B.version, '0.1.0');
-    });
-
-    test('isInstanceOf()', function() {
-      let A010 = KindaObject.extend('A', '0.1.0');
-      assert.isTrue(A010.prototype.isInstanceOf(A010));
-
-      let A015 = KindaObject.extend('A', '0.1.5');
-      assert.isTrue(A010.prototype.isInstanceOf(A015));
-      assert.isFalse(A015.prototype.isInstanceOf(A010));
-
-      let B015 = KindaObject.extend('B', '0.1.5');
-      assert.isFalse(A010.prototype.isInstanceOf(B015));
-
-      let A024 = KindaObject.extend('A', '0.2.4');
-      assert.isFalse(A015.prototype.isInstanceOf(A024));
-      assert.isFalse(A024.prototype.isInstanceOf(A015));
-
-      let A117 = KindaObject.extend('A', '1.1.7');
-      let A141 = KindaObject.extend('A', '1.4.1');
-      assert.isTrue(A117.prototype.isInstanceOf(A141));
-      assert.isFalse(A141.prototype.isInstanceOf(A117));
-
-      let A202 = KindaObject.extend('A', '2.0.2');
-      assert.isFalse(A117.prototype.isInstanceOf(A202));
-      assert.isFalse(A202.prototype.isInstanceOf(A117));
-    });
-
-    test('include()', function() {
-      let a010Constructed, a015Constructed;
-      let A010 = KindaObject.extend('A', '0.1.0', function() {
-        a010Constructed = true;
-      });
-      let A015 = KindaObject.extend('A', '0.1.5', function() {
-        a015Constructed = true;
-      });
-      let A020 = KindaObject.extend('A', '0.2.0');
-
-      a010Constructed = false;
-      a015Constructed = false;
-      (KindaObject.extend(function() {
-        this.include(A010);
-        this.include(A015);
-      })).instantiate();
-      assert.isTrue(a010Constructed);
-      assert.isTrue(a015Constructed);
-
-      a010Constructed = false;
-      a015Constructed = false;
-      (KindaObject.extend(function() {
-        this.include(A015);
-        this.include(A010);
-      })).instantiate();
-      assert.isTrue(a015Constructed);
-      assert.isFalse(a010Constructed);
-
-      assert.throws(function() {
-        (KindaObject.extend(function() {
-          this.include(A015);
-          this.include(A020);
-        })).instantiate();
+  test('patch a property', function() {
+    let Movie = KindaObject.extend('Movie', '0.1.0', function() {
+      this.setProperty('title', {
+        get() {
+          return this._title;
+        },
+        set(title) {
+          this._title = title;
+        }
       });
     });
+
+    let movie = Movie.create();
+    assert.isUndefined(movie.title);
+    movie.title = 'Hello, World!';
+    assert.strictEqual(movie.title, 'Hello, World!');
+
+    let NewMovie = KindaObject.extend('Movie', '0.1.1', function() {
+      this.setProperty('title', {
+        get() {
+          return this._title || 'Untitled';
+        },
+        set(title) {
+          this._title = title.toUpperCase();
+        }
+      });
+    });
+
+    let MovieMixin = NewMovie.extend('MovieMixin');
+
+    let Film = Movie.extend('Film', function() {
+      this.include(MovieMixin); // Movie should be upgraded to NewMovie
+    });
+
+    let film = Film.create();
+    assert.strictEqual(film.title, 'Untitled');
+    film.title = 'Hello, World!';
+    assert.strictEqual(film.title, 'HELLO, WORLD!');
   });
 });

@@ -1,7 +1,7 @@
 {
   "name": "kinda-object",
-  "version": "0.3.1",
-  "description": "Base class",
+  "version": "0.4.0",
+  "description": "A better Object",
   "author": "Manuel Vila <mvila@3base.com>",
   "license": "MIT",
   "main": "lib/index.js",
@@ -20,14 +20,14 @@
     "test": "mocha --compilers js:babel/register --ui tdd"
   },
   "dependencies": {
-    "semver": "^5.0.1"
+    "kinda-instantiable": "~0.1.0"
   },
   "devDependencies": {
-    "babel": "^5.8.20",
-    "babel-eslint": "^4.0.5",
-    "chai": "^2.3.0",
-    "eslint": "^1.1.0",
-    "eslint-config-kinda": "^0.2.0",
-    "mocha": "^2.2.5"
+    "babel": "~5.8.20",
+    "babel-eslint": "~4.0.5",
+    "chai": "~2.3.0",
+    "eslint": "~1.1.0",
+    "eslint-config-kinda": "~0.2.0",
+    "mocha": "~2.2.5"
   }
 }
