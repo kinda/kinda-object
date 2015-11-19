@@ -179,6 +179,12 @@ constructPrototype = function(klass) {
     return this.serializer();
   };
 
+  klass.prototype.clone = function() {
+    let json = this.serialize();
+    let obj = this.class.unserialize(json);
+    return obj;
+  };
+
   klass.constructor.call(klass.prototype);
 };
 

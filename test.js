@@ -134,6 +134,26 @@ suite('KindaObject', function() {
           { firstname: 'Jean', lastname: 'Dupont' }
         );
       });
+
+      test('clone()', function() {
+        let Person = KindaObject.extend('Person', function() {
+          this.serializer = function() {
+            return { firstname: this.firstname, lastname: this.lastname };
+          };
+          this.unserializer = function(json) {
+            this.firstname = json.firstname;
+            this.lastname = json.lastname;
+          };
+        });
+
+        let person = Person.create();
+        person.firstname = 'Jean';
+        person.lastname = 'Dupont';
+        let copy = person.clone();
+        assert.notEqual(copy, person);
+        assert.equal(copy.firstname, person.firstname);
+        assert.equal(copy.lastname, person.lastname);
+      });
     });
   });
 
